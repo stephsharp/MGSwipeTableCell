@@ -148,6 +148,13 @@ typedef NS_ENUM(NSInteger, MGSwipeState) {
 /** Property to read or change the current swipe offset programmatically */
 @property (nonatomic, assign) CGFloat swipeOffset;
 
+/** Readonly property that determines whether the left or right buttons are visible */
+@property (nonatomic, readonly) BOOL visibleButtons;
+/** Optional property that causes the current cell to close when another cell is swiped open.
+ * If not set, the user must tap to close the current cell then swipe to open another.
+ */
+@property (nonatomic, assign) BOOL autoHideOnSwipe;
+
 /** Utility methods to show or hide swipe buttons programmatically */
 -(void) hideSwipeAnimated: (BOOL) animated;
 -(void) showSwipe: (MGSwipeDirection) direction animated: (BOOL) animated;

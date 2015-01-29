@@ -361,6 +361,10 @@ typedef struct MGSwipeAnimationData {
 
 static NSMutableSet * singleSwipePerTable;
 
+@interface MGSwipeTableCell ()
+@property (nonatomic, readwrite) BOOL visibleButtons;
+@end
+
 @implementation MGSwipeTableCell
 {
     UITapGestureRecognizer * _tapRecognizer;
@@ -526,7 +530,7 @@ static NSMutableSet * singleSwipePerTable;
 
 - (void) showSwipeOverlayIfNeeded
 {
-    if (_tableInputOverlay) {
+    if (self.visibleButtons) {
         return;
     }
     if (_swipeContentView)
@@ -535,12 +539,15 @@ static NSMutableSet * singleSwipePerTable;
     _swipeOverlay.hidden = NO;
     if (_swipeContentView)
         [_swipeView addSubview:_swipeContentView];
-    
-    //input overlay on the whole table
-    UITableView * table = [self parentTable];
-    _tableInputOverlay = [[MGSwipeTableInputOverlay alloc] initWithFrame:table.bounds];
-    _tableInputOverlay.currentCell = self;
-    [table addSubview:_tableInputOverlay];
+
+    if (!self.autoHideOnSwipe) {
+        //input overlay on the whole table
+        UITableView * table = [self parentTable];
+        _tableInputOverlay = [[MGSwipeTableInputOverlay alloc] initWithFrame:table.bounds];
+        _tableInputOverlay.currentCell = self;
+        [table addSubview:_tableInputOverlay];
+    }
+    self.visibleButtons = YES;
 
     _previusSelectionStyle = self.selectionStyle;
     self.selectionStyle = UITableViewCellSelectionStyleNone;
@@ -549,12 +556,18 @@ static NSMutableSet * singleSwipePerTable;
     _tapRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(tapHandler:)];
     _tapRecognizer.cancelsTouchesInView = YES;
     _tapRecognizer.delegate = self;
-    [self addGestureRecognizer:_tapRecognizer];
+
+    if (self.autoHideOnSwipe) {
+        [[self parentTable] addGestureRecognizer:_tapRecognizer];
+    }
+    else {
+        [self addGestureRecognizer:_tapRecognizer];
+    }
 }
 
 -(void) hideSwipeOverlayIfNeeded
 {
-    if (!_tableInputOverlay) {
+    if (!self.visibleButtons) {
         return;
     }
 
@@ -564,10 +577,13 @@ static NSMutableSet * singleSwipePerTable;
         [_swipeContentView removeFromSuperview];
         [self.contentView addSubview:_swipeContentView];
     }
-    
-    [_tableInputOverlay removeFromSuperview];
-    _tableInputOverlay = nil;
-    
+
+    if (!self.autoHideOnSwipe) {
+        [_tableInputOverlay removeFromSuperview];
+        _tableInputOverlay = nil;
+    }
+    self.visibleButtons = NO;
+
     self.selectionStyle = _previusSelectionStyle;
     [self setAccesoryViewsHidden:NO];
     
@@ -889,11 +905,27 @@ static NSMutableSet * singleSwipePerTable;
     [_displayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSRunLoopCommonModes];
 }
 
+- (void)hideOtherCells
+{
+    for (UITableViewCell *cell in [[self parentTable] visibleCells]) {
+        if ([cell isKindOfClass:[MGSwipeTableCell class]]) {
+            MGSwipeTableCell *swipeCell = (MGSwipeTableCell *)cell;
+            if (swipeCell.visibleButtons && swipeCell != self) {
+                [swipeCell hideSwipeAnimated:YES];
+            }
+        }
+    }
+}
+
 #pragma mark Gestures
 
 -(void) tapHandler: (UITapGestureRecognizer *) recognizer
 {
     [self hideSwipeAnimated:YES];
+
+    if (self.autoHideOnSwipe) {
+        [self hideOtherCells];
+    }
 }
 
 -(void) panHandler: (UIPanGestureRecognizer *)gesture
@@ -901,6 +933,10 @@ static NSMutableSet * singleSwipePerTable;
     CGPoint current = [gesture translationInView:self];
     
     if (gesture.state == UIGestureRecognizerStateBegan) {
+        if (self.autoHideOnSwipe) {
+            [self hideOtherCells];
+        }
+
         self.highlighted = NO;
         self.selected = NO;
         [self createSwipeViewIfNeeded];
