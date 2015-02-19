@@ -555,12 +555,12 @@ static NSMutableSet * singleSwipePerTable;
     
     _tapRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(tapHandler:)];
     _tapRecognizer.cancelsTouchesInView = YES;
-    _tapRecognizer.delegate = self;
 
     if (self.autoHideOnSwipe) {
         [[self parentTable] addGestureRecognizer:_tapRecognizer];
     }
     else {
+        _tapRecognizer.delegate = self;
         [self addGestureRecognizer:_tapRecognizer];
     }
 }
