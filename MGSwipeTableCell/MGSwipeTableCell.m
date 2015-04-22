@@ -421,6 +421,11 @@ static NSMutableSet * singleSwipePerTable;
 
 -(void) dealloc
 {
+	// Remove all references to this object on gesture recognisers on the parentTable
+    for (UIGestureRecognizer *recogniser in [[self parentTable] gestureRecognizers]) {
+        [recogniser removeTarget:self action:NULL];
+    }
+    
     [self hideSwipeOverlayIfNeeded];
 }
 
